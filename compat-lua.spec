@@ -1,6 +1,6 @@
 Name:           compat-lua
 Version:        5.1.5
-Release:        22%{?dist}
+Release:        23%{?dist}
 Summary:        Powerful light-weight programming language (compat version)
 License:        MIT
 URL:            http://www.lua.org/
@@ -25,6 +25,11 @@ Summary:        Powerful light-weight programming language (compat version)
 Provides:       lua(abi) = 5.1
 Provides:       lua5.1-libs = %{version}-%{release}
 Provides:       lua5.1-libs%{?_isa} = %{version}-%{release}
+%if 0%{?rhel} && 0%{?rhel} < 8
+# EL7/amzn2 base lua IS 5.1 (rpm requires it) and owns liblua-5.1.so; shipping a
+# second copy aborted yum at the rpm file-conflict test. Use the base library.
+Requires:       lua%{?_isa} >= 5.1
+%endif
 
 %description libs
 This package contains a compatibility version of the lua-5.1 libraries.
@@ -42,10 +47,10 @@ This package contains development files for compat-lua-libs.
 
 %prep
 %setup -q -n lua-%{version}
-%patch 0 -p1 -E -z .autoxxx
-%patch 1 -p0 -z .lunatic
-%patch 2 -p1 -z .idsize
-%patch 3 -p1
+%patch -P 0 -p1 -E -z .autoxxx
+%patch -P 1 -p0 -z .lunatic
+%patch -P 2 -p1 -z .idsize
+%patch -P 3 -p1
 # fix perms on auto files
 chmod u+x autogen.sh config.guess config.sub configure depcomp install-sh missing
 # Avoid make doing auto-reconf itself, killing our rpath removal in the process
@@ -80,6 +85,9 @@ mv $RPM_BUILD_ROOT%{_includedir}/l*h* $RPM_BUILD_ROOT%{_includedir}/lua-5.1
 rm $RPM_BUILD_ROOT%{_libdir}/liblua.so
 mv $RPM_BUILD_ROOT%{_libdir}/pkgconfig/lua.pc \
   $RPM_BUILD_ROOT%{_libdir}/pkgconfig/lua-5.1.pc
+%if 0%{?rhel} && 0%{?rhel} < 8
+rm $RPM_BUILD_ROOT%{_libdir}/liblua-5.1.so
+%endif
 
 
 %ldconfig_scriptlets libs
@@ -92,7 +100,9 @@ mv $RPM_BUILD_ROOT%{_libdir}/pkgconfig/lua.pc \
 
 %files libs
 %doc COPYRIGHT HISTORY README doc/*.html doc/*.css doc/*.gif doc/*.png
+%if ! (0%{?rhel} && 0%{?rhel} < 8)
 %{_libdir}/liblua-5.1.so
+%endif
 %dir %{_libdir}/lua
 %dir %{_libdir}/lua/5.1
 %dir %{_datadir}/lua
@@ -104,6 +114,10 @@ mv $RPM_BUILD_ROOT%{_libdir}/pkgconfig/lua.pc \
 
 
 %changelog
+* Thu Oct 29 2026 Danila Vershinin <info@getpagespeed.com> - 5.1.5-23
+- EL7/amzn2: use the base lua 5.1 library instead of shipping a conflicting
+  liblua-5.1.so copy
+
 * Thu Jan 19 2023 Fedora Release Engineering <releng@fedoraproject.org> - 5.1.5-22
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
 
